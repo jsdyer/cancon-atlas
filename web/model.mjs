@@ -1,7 +1,11 @@
-// Keep transformations separate from the DOM so they can be tested directly.
-export function cleanLines(text) {
-  if (typeof text !== 'string') throw new TypeError('Expected text');
-  const lines = text.split(/\r\n|\r|\n/).map(line => line.trim()).filter(Boolean);
-  const unique = [...new Set(lines)];
-  return { text: unique.join('\n'), count: unique.length, removed: lines.length - unique.length };
+export function normalize(value) {
+  return value.normalize('NFD').replace(/\p{M}/gu,'').toLowerCase().trim();
+}
+export function entries(rows) {
+  return rows.map((r,i)=>({id:i,row:r,text:normalize([r[0],r[1],r[4],r[4].replaceAll('-','')].join(' '))}));
+}
+export function selectRows(items,query,cancon,language,sub) {
+  const words=normalize(query).split(/\s+/).filter(Boolean);
+  return items.filter(({row:r,text}) => words.every(w=>text.includes(w))
+    && (!cancon || r[2]===cancon) && (!language || (r[3]||'Unspecified')===language) && (!sub || r[8]===sub));
 }

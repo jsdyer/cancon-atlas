@@ -1,16 +1,45 @@
 {
-  "id": "coolcode-tool-template",
-  "title": "CoolCode Tool Starter",
-  "description": "A browser-only example that trims lines and removes exact duplicates.",
-  "category": "security",
-  "tags": ["text", "lines", "duplicates"],
-  "icon": "scan-search",
-  "url": "/coolcode-tool-template/",
-  "source": "https://github.com/jsdyer/coolcode-tool-template",
+  "id": "cancon-atlas",
+  "title": "CanCon Atlas",
+  "description": "Find a recording in the CRTC music database and inspect its Canadian-content decision, language and release details.",
+  "category": "media",
+  "tags": [
+    "Canada",
+    "music",
+    "MAPL",
+    "radio",
+    "CRTC"
+  ],
+  "icon": "disc-3",
+  "url": "/cancon-atlas/",
+  "source": "https://github.com/jsdyer/cancon-atlas",
   "hosting": "project",
   "access": "browser",
   "data_info": {
-    "mode": "local",
-    "detail": "The browser reads the text you paste and compares its lines."
+    "mode": "snapshot",
+    "detail": "The CRTC publishes selection-level Canadian-content decisions, artists, languages, release dates and recording identifiers.",
+    "cadence": "Monthly",
+    "probes": [
+      {
+        "url": "https://coolcode.ca/cancon-atlas/data/status.json",
+        "label": "Source retrieved",
+        "path": [
+          "retrieved"
+        ],
+        "count_at": {
+          "path": [
+            "count"
+          ],
+          "unit": "recording rows"
+        }
+      },
+      {
+        "url": "https://coolcode.ca/cancon-atlas/data/status.json",
+        "label": "CRTC edition",
+        "path": [
+          "edition"
+        ]
+      }
+    ]
   }
 }
