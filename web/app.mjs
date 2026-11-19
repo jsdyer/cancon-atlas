@@ -1,7 +1,15 @@
 import {$,el,num,load,select,fail} from './ui.mjs';
-import {entries,normalize,selectRows} from './model.mjs';
+import {entries,normalize,selectRows,decade} from './model.mjs';
 let all=[],matches=[],page=0,selected,edition;
 const size=30, fields=['Title','Artist','Canadian content','Majority language','ISRC','Release date','Duration','Content category','Subcategory','Emerging status'];
+function share(id){
+  const url=new URL(location.href);
+  for(const key of ['q','cancon','lang','genre','decade'])url.searchParams.set(key,$(key).value);
+  if(Number.isInteger(id)){
+    url.searchParams.set('edition',edition);url.searchParams.set('row',String(id+2));
+  } else {url.searchParams.delete('row');url.searchParams.delete('edition');}
+  history.replaceState(null,'',url);
+}
 function details(id,jump=false) {
   const entry=all[id]; if(!entry)return;
   selected=id;
@@ -14,9 +22,7 @@ function details(id,jump=false) {
     const b=el('button',e.row[4]||('Source row '+(e.id+2)));b.disabled=e.id===id;b.onclick=()=>details(e.id);group.append(b);
   }
   $('detail').replaceChildren(el('p',entry.row[1]+' · CSV row '+(id+2),'meta'),dl,el('h3','Same artist and title in this edition'),group);
-  const url=new URL(location.href);
-  url.searchParams.set('edition',edition);url.searchParams.set('row',String(id+2));url.searchParams.set('q',$('q').value);
-  history.replaceState(null,'',url);
+  share(id);
   if(jump)$('record').focus();
 }
 function display() {
@@ -31,20 +37,29 @@ function display() {
   $('prev').disabled=page===0;$('next').disabled=(page+1)*size>=matches.length;
 }
 function search() {
-  matches=selectRows(all,$('q').value,$('cancon').value,$('lang').value,$('genre').value);page=0;display();
+  matches=selectRows(all,$('q').value,$('cancon').value,$('lang').value,$('genre').value,$('decade').value);page=0;display();
   $('record').hidden=!matches.length;
-  if(matches.length)details(matches[0].id);
+  if(matches.length)details(matches[0].id); else share(null);
+  $('export').disabled=!matches.length;
 }
 async function start(){
   const [data,status]=await Promise.all([load('recordings'),load('status')]);
   all=entries(data);edition=status.edition;
   const options=(id,column,label)=>select(id,[['',label],...[...new Set(data.map(r=>r[column]||'Unspecified'))].sort().map(v=>[v,v])]);
   options('cancon',2,'All statuses');options('lang',3,'All languages');options('genre',8,'All subcategories');
+  select('decade',[['','All release decades'],...[...new Set(data.map(r=>decade(r[5])))].sort().map(x=>[x,x])]);
   const params=new URLSearchParams(location.search);
   $('q').value=params.get('q')??'Sloan';$('raw').href=status.source;
   $('status').textContent=num(status.count)+' source rows · CRTC edition '+edition+' · Retrieved '+status.retrieved;
+  for(const key of ['cancon','lang','genre','decade'])if([...$(key).options].some(o=>o.value===params.get(key)))$(key).value=params.get(key);
+  $('export').onclick=()=>{
+    const rows=matches.map(e=>({sourceRow:e.id+2,...Object.fromEntries(fields.map((name,i)=>[name,e.row[i]]))}));
+    const doc={edition,source:status.source,filters:Object.fromEntries(['q','cancon','lang','genre','decade'].map(id=>[id,$(id).value])),rows};
+    const url=URL.createObjectURL(new Blob([JSON.stringify(doc,null,2)],{type:'application/json'}));
+    const a=el('a');a.href=url;a.download='crtc-music-'+edition+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+  };
   $('filters').onsubmit=e=>e.preventDefault();
-  $('q').oninput=search;for(const id of ['cancon','lang','genre'])$(id).onchange=search;
+  $('q').oninput=search;for(const id of ['cancon','lang','genre','decade'])$(id).onchange=search;
   $('prev').onclick=()=>{page--;display();};$('next').onclick=()=>{page++;display();};
   search();
   const target=Number(params.get('row'))-2;

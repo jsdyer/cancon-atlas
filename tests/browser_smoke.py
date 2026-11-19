@@ -39,6 +39,9 @@ def main():
                 page.select_option('#lang','')
                 page.fill('#q','CAV170500004')
                 assert page.locator('#rows tr').count() >= 1
+                with page.expect_download() as download:
+                    page.click('#export')
+                assert download.value.suggested_filename.endswith('.json')
                 page.screenshot(path=str(screenshots / "desktop.png"), full_page=True)
                 page.set_viewport_size({"width": 390, "height": 844})
                 assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
